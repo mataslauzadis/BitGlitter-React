@@ -2,20 +2,23 @@
 import 'react-native-gesture-handler';
 import React from 'react';
 import {Text, View, StyleSheet, Alert, TouchableOpacity} from 'react-native';
+import DocumentPicker from 'react-native-document-picker';
 
 export function fileSelect() {
   Alert.alert('File select');
+
+
 }
 
 const HomeScreen = ({navigation}) => {
-  return (
+  return ( 
     <View style={styles.container}>
-      <TouchableOpacity style={styles.button} onPress={fileSelect}>
+      <TouchableOpacity style={styles.button} onPress={ fileSelect }>
         <Text style={{color: 'rgb(255,255,255)'}}>Send</Text>
       </TouchableOpacity>
-      <TouchableOpacity
+      <TouchableOpacity>
         style={styles.button}
-        onPress={() => navigation.navigate('Receive')}>
+        onPress={() => navigation.navigate('Receive')}
         <Text style={{color: 'rgb(255,255,255)'}}>Receive</Text>
       </TouchableOpacity>
     </View>
