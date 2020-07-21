@@ -17,6 +17,7 @@
     "react": "16.13.1",
     "react-native": "0.63.1",
     "react-native-document-picker": "^3.5.3",
+    "react-native-fs": "^2.16.6",
     "react-native-gesture-handler": "^1.6.1",
     "react-native-reanimated": "^1.9.0",
     "react-native-safe-area-context": "^3.1.1",
@@ -37,7 +38,10 @@
     "eslint-plugin-standard": "^4.0.1",
     "jest": "^25.1.0",
     "metro-react-native-babel-preset": "^0.59.0",
+    "p5": "^1.0.0",
     "react-devtools": "^4.8.2",
+    "react-native-camera": "^3.32.0",
+    "react-p5-wrapper": "^2.0.0",
     "react-test-renderer": "16.13.1"
   },
   "jest": {
