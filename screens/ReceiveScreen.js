@@ -1,13 +1,24 @@
 import 'react-native-gesture-handler';
-import React from 'react';
+import React, {Component} from 'react';
 import {View, StyleSheet} from 'react-native';
+import { RNCamera } from 'react-native-camera';
 
-const ReceiveScreen = ({navigation}) => {
-  return (
-    <View style={styles.container}>
-    </View>
-  );
-};
+class ReceiveScreen extends Component {
+  render() {
+    return (
+      <View style={styles.container}>
+        <RNCamera
+          style={{flex: 1, alignItems: 'center'}}
+          ref={(ref) => {
+            this.camera = ref;
+          }}
+          type={RNCamera.Constants.Type.front}
+          captureAudio={false}
+        />
+      </View>
+    );
+  }
+}
 
 const styles = StyleSheet.create({
   container: {
