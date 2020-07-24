@@ -1,83 +1,160 @@
 /* eslint-disable react/prop-types */
 import 'react-native-gesture-handler';
-import React from 'react';
-import {View, StyleSheet, Dimensions, PixelRatio} from 'react-native';
+import React, { Component } from 'react';
+import {View, StyleSheet, Dimensions, PixelRatio, TouchableNativeFeedbackBase} from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
 import * as RNFS from 'react-native-fs';
+import { GLView } from 'expo-gl';
+
 
 const width = PixelRatio.getPixelSizeForLayoutSize(Dimensions.get('window').width);
 const height = PixelRatio.getPixelSizeForLayoutSize(Dimensions.get('window').height);
 
-const SendScreen = ({navigation}) => {
-  DocumentPicker.pick({
-    type: [DocumentPicker.types.allFiles]
-  })
+function processFile(res) {
+  RNFS.readFile(res['uri'], 'ascii').then(res => {      
+    console.log(res);
+
+    var binary = [];
+    for(var i = 0; i < res.length; ++i){
+      var code = res.charCodeAt(i);
+      var bin = code.toString(2);
+      binary = binary.concat([bin]);
+    }
+    binary = binary.join('');
+    console.log(binary);
+
+    var color_hashmap = {
+      '000': 'rgb(0,0,0)',
+      '001': 'rgb(255,0,0)',
+      '010': 'rgb(255, 255, 0)',
+      '011': 'rgb(0,255,0)',
+      '100': 'rgb(255,0,255)',
+      '101': 'rgb(0,255,255)',
+      '110': 'rgb(0,0,255)',
+      '111': 'rgb(255,255,255)',
+    };
+    var pixels = [];
+    for(var i = 0; i < binary.length; i += 3){
+      var bit = binary.substring(i, i+3);
+      pixels = pixels.concat(color_hashmap[bit]);
+    }
+    console.log(pixels);
+    console.log('Number of pixels: ' + pixels.length);
+
+    var pixelSize = 20;
+    var pixelWidth = Math.floor(width / pixelSize) - 1; // reserve one column (leftmost) of pixels for the calibrator checkerboard 
+    var pixelHeight = Math.floor(height / pixelSize) - 1; // reserve one row (top) of pixels for the calibrator checkerboard
+
+    console.log('pixelSize: ' + pixelSize);
+    console.log('screenWidth: ' + width);
+    console.log('pixelWidth: ' + pixelWidth);
+    console.log('screenHeight: ' + height);
+    console.log('pixelHeight: ' + pixelHeight);
+
+    var frames = Math.ceil(pixels.length / (pixelHeight * pixelWidth));
+    console.log('Number of frames required: ' + frames);
+  });
+}
+
+function pickFile() {
+  DocumentPicker.pick({ type: [DocumentPicker.types.allFiles] })
   .then(res => {
-    console.log('Found file');
-
-    RNFS.readFile(res['uri'], 'ascii').then(res =>{      
-      console.log(res);
-
-      var binary = [];
-      for(var i = 0; i < res.length; ++i){
-        var code = res.charCodeAt(i);
-        var bin = code.toString(2);
-        binary = binary.concat([bin]);
-      }
-      binary = binary.join('');
-      console.log(binary);
-
-      var color_hashmap = {
-        '000': 'rgb(0,0,0)',
-        '001': 'rgb(255,0,0)',
-        '010': 'rgb(255, 255, 0)',
-        '011': 'rgb(0,255,0)',
-        '100': 'rgb(255,0,255)',
-        '101': 'rgb(0,255,255)',
-        '110': 'rgb(0,0,255)',
-        '111': 'rgb(255,255,255)',
-      };
-      var pixels = [];
-      for(var i = 0; i < binary.length; i += 3){
-        var bit = binary.substring(i, i+3);
-        pixels = pixels.concat(color_hashmap[bit]);
-      }
-      console.log(pixels);
-      console.log('Number of pixels: ' + pixels.length);
-
-      var pixelSize = 20;
-      var pixelWidth = Math.floor(width / pixelSize) - 1; // reserve one column (leftmost) of pixels for the calibrator checkerboard 
-      var pixelHeight = Math.floor(height / pixelSize) - 1; // reserve one row (top) of pixels for the calibrator checkerboard
-
-      console.log('pixelSize: ' + pixelSize);
-      console.log('screenWidth: ' + width);
-      console.log('pixelWidth: ' + pixelWidth);
-      console.log('screenHeight: ' + height);
-      console.log('pixelHeight: ' + pixelHeight);
-
-      var frames = Math.ceil(pixels.length / (pixelHeight * pixelWidth));
-      console.log('Number of frames required: ' + frames);
-
-      var imageResolution = pixelWidth * pixelHeight;
-
-    });
-
+    processFile(res);
   })
   .catch(err => {
     if (DocumentPicker.isCancel(err)) {
       console.log('Closed file picker.');
-      navigation.navigate('Home');
+      this.props.navigation.navigate('Home');
     } 
     else { 
       console.log(err);
-      navigation.navigate('Home');
+      this.props.navigation.navigate('Home');
     }
   });
-  
-  return (
-    <View style={styles.container}>
-    </View>
-  );
+}
+
+const vertSrc = `
+attribute vec2 position;
+varying vec2 uv;
+void main() {
+  gl_Position = vec4(position.x, -position.y, 0.0, 1.0);
+  uv = vec2(0.5, 0.5) * (position+vec2(1.0, 1.0));
+}`;
+
+const fragSrc = `
+precision highp float;
+varying vec2 uv;
+void main () {
+  gl_FragColor = vec4(uv.x, uv.y, 0.5, 1.0);
+}`;
+
+
+class SendScreen extends Component {  
+  render() {
+    return (
+      <GLView 
+        style={styles.container}
+        onContextCreate={this._onContextCreate}
+      />
+    );
+  }
+  _onContextCreate = gl => {
+    const vert = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vert, vertSrc);
+    gl.compileShader(vert);
+    const frag = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(frag, fragSrc);
+    gl.compileShader(frag);
+
+    // Link together into a program
+    const program = gl.createProgram();
+    gl.attachShader(program, vert);
+    gl.attachShader(program, frag);
+    gl.linkProgram(program);
+
+    // Save position attribute
+    const positionAttrib = gl.getAttribLocation(program, 'position');
+
+    // Create buffer
+    const buffer = gl.createBuffer();
+
+    // Animate!
+    let skip = false;
+    const animate = () => {
+      try {
+        if (skip) {
+          // return;
+        }
+
+        // Clear
+        gl.clearColor(0, 0, 1, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        // Bind buffer, program and position attribute for use
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.useProgram(program);
+        gl.enableVertexAttribArray(positionAttrib);
+        gl.vertexAttribPointer(positionAttrib, 2, gl.FLOAT, false, 0, 0);
+
+        // Buffer data and draw!
+        const speed = this.props.speed || 1;
+        const a = 0.48 * Math.sin(0.001 * speed * Date.now()) + 0.5;
+        console.log(a);
+        const verts = new Float32Array([-a, -a, a, -a, -a, a, -a, a, a, -a, a, a]);
+        gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
+        gl.drawArrays(gl.TRIANGLES, 0, verts.length / 2);
+
+        // Submit frame
+        gl.flush();
+        gl.endFrameEXP();
+      } finally {
+        skip = !skip;
+        gl.enableLogging = false;
+        requestAnimationFrame(animate);
+      }
+    };
+    animate();
+  };
 };
 
 const styles = StyleSheet.create({
@@ -85,6 +162,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 10,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#0000FF'
   },
   row: {
     flex: 1,
@@ -99,6 +179,9 @@ const styles = StyleSheet.create({
     marginRight: 60,
     marginTop: 25,
   },
+  svg: {
+    backgroundColor: '#A9A9A9',
+  }
 });
 
 export default SendScreen;
