@@ -23,20 +23,28 @@ function processFile(res) {
     binary = binary.join('');
     console.log(binary);
 
-    var color_hashmap = {
-      '000': 'rgb(0,0,0)',
-      '001': 'rgb(255,0,0)',
-      '010': 'rgb(255, 255, 0)',
-      '011': 'rgb(0,255,0)',
-      '100': 'rgb(255,0,255)',
-      '101': 'rgb(0,255,255)',
-      '110': 'rgb(0,0,255)',
-      '111': 'rgb(255,255,255)',
+    var eight_color_hashmap = {
+      '000': (0,0,0),  // black
+      '001': (255,0,0), // red
+      '010': (255, 255, 0),  // yellow
+      '011': (0,255,0), // green
+      '100': (255,0,255), // pink
+      '101': (0,255,255), // cyan
+      '110': (0,0,255), // blue
+      '111': (255,255,255), // white
     };
+
+    var four_color_hashmap = {
+      '00': (0,0,0),
+      '01': (255,0,0),
+      '10': (0,255,0),
+      '11': (0,0,255)
+    }
+
     var pixels = [];
-    for(var i = 0; i < binary.length; i += 3){
-      var bit = binary.substring(i, i+3);
-      pixels = pixels.concat(color_hashmap[bit]);
+    for(var i = 0; i < binary.length; i += 2){
+      var bit = binary.substring(i, i+2);
+      pixels = pixels.concat(four_color_hashmap[bit]);
     }
     console.log(pixels);
     console.log('Number of pixels: ' + pixels.length);
@@ -91,6 +99,7 @@ void main () {
 
 class SendScreen extends Component {  
   render() {
+    // pickFile();
     return (
       <GLView 
         style={styles.container}
@@ -119,13 +128,8 @@ class SendScreen extends Component {
     const buffer = gl.createBuffer();
 
     // Animate!
-    let skip = false;
     const animate = () => {
       try {
-        if (skip) {
-          // return;
-        }
-
         // Clear
         gl.clearColor(0, 0, 1, 1);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -148,7 +152,6 @@ class SendScreen extends Component {
         gl.flush();
         gl.endFrameEXP();
       } finally {
-        skip = !skip;
         gl.enableLogging = false;
         requestAnimationFrame(animate);
       }
